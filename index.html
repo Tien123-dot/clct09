@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Báo cáo Tồn kho kém phẩm chất – Tháng 09/2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --maroon:#8B100A; --yellow:#FFE000; --ink:#1f2023; --paper:#faf8f4;
+    --line:#e4ddd2; --muted:#6b6459; --warn:#b5372f;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:'Segoe UI', Roboto, Arial, sans-serif; background:var(--paper); color:var(--ink); padding:28px 32px 48px; }
+  h1{ font-size:24px; margin:0 0 4px; }
+  h2{ font-size:16px; margin:0 0 4px; color:var(--ink); }
+  .eyebrow{ font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--maroon); font-weight:700; margin-bottom:6px; }
+  .main-sub{ color:var(--muted); font-size:13px; margin-bottom:8px; }
+  .header-meta{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-top:16px; }
+  .meta-pill{
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:14px 16px; display:flex; flex-direction:column; gap:4px;
+    box-shadow:0 1px 4px rgba(0,0,0,.06);
+    transition: box-shadow .15s, border-color .15s;
+  }
+  .meta-pill:hover{ box-shadow:0 3px 10px rgba(0,0,0,.10); border-color:#c9b9a8; }
+  .meta-pill .mp-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); font-weight:600; }
+  .meta-pill b{ font-size:17px; font-weight:800; color:var(--ink); line-height:1.2; }
+  .meta-pill.highlight{ background:var(--maroon); border-color:var(--maroon); }
+  .meta-pill.highlight .mp-label{ color:rgba(255,255,255,.7); }
+  .meta-pill.highlight b{ color:#FFE000; font-size:20px; }
+  .section{ margin-top:38px; }
+  .section-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:4px; }
+  .section-num{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:var(--maroon); color:#fff; font-size:12px; font-weight:700; flex-shrink:0; }
+  .sub{ color:var(--muted); font-size:12.5px; margin-bottom:16px; margin-left:34px; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:10px; padding:20px 22px 14px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .chart-wrap{position:relative; height:440px;}
+  .chart-wrap-sm{position:relative; height:340px;}
+  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media(max-width:780px){ .two-col{ grid-template-columns:1fr; } }
+
+  .tooltip-custom{
+    position:absolute; pointer-events:none; background:var(--ink); color:#fff; padding:10px 13px; border-radius:8px;
+    font-size:12px; line-height:1.5; max-width:360px; max-height:410px; overflow-y:auto; box-sizing:border-box;
+    box-shadow:0 6px 18px rgba(0,0,0,.25); opacity:0; transition:opacity .12s; z-index:10;
+  }
+  .tooltip-custom .t-title{ font-weight:700; color:var(--yellow); font-size:13px; margin-bottom:4px; border-bottom:1px solid rgba(255,255,255,.15); padding-bottom:4px; }
+  .tooltip-custom .t-total{ color:#ffc9c4; font-weight:600; margin-bottom:2px; }
+  .tooltip-custom .t-sub{ color:#c9c4b8; font-size:10.5px; margin-bottom:6px; }
+  .tooltip-custom .t-item{ display:flex; flex-direction:column; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.08); }
+  .tooltip-custom .t-item-header{ display:flex; justify-content:space-between; align-items:center; cursor:pointer; color:#e6e6e6; }
+  .tooltip-custom .t-item-header:hover{ color:var(--yellow); }
+  .tooltip-custom .t-item-header .cnt{ color:#9fd8a8; font-size:10.5px; font-weight:600; margin-left:6px; white-space:nowrap; }
+  .tooltip-custom .t-item-content{ display:none; flex-direction:column; padding-top:4px; padding-left:6px; gap:2px; }
+  .tooltip-custom .t-item.active .t-item-content{ display:flex; }
+  .tooltip-custom .t-item .vl{ color:var(--yellow); white-space:nowrap; font-weight:600; }
+  .tooltip-custom .t-item .dy{ color:#ff9d95; font-size:10.5px; white-space:nowrap; }
+  .tooltip-custom .t-item .zero{ color:#b8b3a8; font-size:10.5px; white-space:nowrap; }
+
+  .insights{ margin-top:14px; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+  .insight{ background:#fff; border:1px solid var(--line); border-left:4px solid var(--maroon); border-radius:6px; padding:13px 15px; }
+  .insight .k{font-size:17px; font-weight:800; color:var(--maroon); line-height:1.3;}
+  .insight .d{font-size:12px; color:var(--muted); margin-top:3px; line-height:1.45;}
+
+  .aging-bar-wrap{ display:flex; flex-direction:column; gap:10px; padding:4px 0; }
+  .aging-row{ display:flex; align-items:center; gap:10px; }
+  .aging-label{ font-size:12px; color:var(--muted); width:120px; flex-shrink:0; text-align:right; }
+  .aging-bar-bg{ flex:1; background:#f0ebe3; border-radius:4px; height:22px; position:relative; }
+  .aging-bar-fg{ height:100%; border-radius:4px; display:flex; align-items:center; padding-left:8px; font-size:11px; font-weight:700; color:#fff; white-space:nowrap; min-width:2px; }
+  .aging-meta{ font-size:11px; color:var(--muted); width:100px; flex-shrink:0; }
+
+  .prov-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .prov-table th{ text-align:left; padding:8px 10px; color:var(--muted); font-weight:600; border-bottom:2px solid var(--line); font-size:11px; text-transform:uppercase; letter-spacing:.5px; }
+  .prov-table td{ padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .prov-table tr:last-child td{ border-bottom:none; }
+  .prov-table tr:hover td{ background:#f5f0e8; }
+  .prov-bar{ height:8px; border-radius:3px; background:var(--maroon); display:inline-block; vertical-align:middle; }
+  .badge{ display:inline-flex; align-items:center; justify-content:center; background:#f5efe4; color:var(--maroon); border-radius:12px; padding:2px 10px; font-size:11px; font-weight:700; }
+
+  .combo{ margin-top:38px; }
+  .combo-head{ font-size:19px; font-weight:800; color:var(--maroon); margin-bottom:4px; }
+  .combo-sub{ color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .combo-insight{
+    background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 20px; margin-bottom:12px;
+    display:flex; gap:14px; align-items:flex-start;
+  }
+  .combo-insight .num{ flex-shrink:0; width:30px; height:30px; border-radius:50%; background:var(--maroon); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; }
+  .combo-insight .body b{ color:var(--maroon); }
+  .combo-insight .ct{ font-weight:700; font-size:14px; margin-bottom:4px; }
+  .combo-insight .cd{ font-size:12.5px; color:#4a453d; line-height:1.6; }
+  .tag{ display:inline-block; background:#f5efe4; color:var(--maroon); border-radius:4px; padding:1px 7px; font-size:11px; font-weight:600; margin-right:4px; margin-bottom:2px; }
+  .footer{margin-top:28px; font-size:11px; color:var(--muted); text-align:right; border-top:1px solid var(--line); padding-top:10px;}
+</style>
+</head>
+<body>
+
+<div class="eyebrow">Phòng Kiểm Soát – Hoa Sen Holdings</div>
+<h1>BÁO CÁO TỔNG HỢP HÀNG KÉM PHẨM CHẤT</h1>
+<div class="main-sub">Đối chiếu tồn kho kém phẩm chất – Tháng 09/2026
+<div class="header-meta">
+  <div class="meta-pill highlight">
+    <span class="mp-label">Tổng tiền phạt</span>
+    <b>5.830.883 đ</b>
+  </div>
+  <div class="meta-pill highlight">
+    <span class="mp-label">Tỷ lệ phạt / Giá trị HH</span>
+    <b>6,69%</b>
+  </div>
+  <div class="meta-pill">
+    <span class="mp-label">Tổng số lô KPC</span>
+    <b>177 lô</b>
+  </div>
+  <div class="meta-pill">
+    <span class="mp-label">Số tỉnh</span>
+    <b>5 tỉnh</b>
+  </div>
+  </div>
+</div>
+
+<!-- SECTION 1 -->
+<div class="section">
+  <div class="section-head"><span class="section-num">1</span><h2>Top 10 cửa hàng có Tổng số tiền phạt cao nhất</h2></div>
+  <div class="sub">Xếp hạng theo tổng giá trị tiền phạt cộng dồn (VNĐ).</div>
+  <div class="card">
+    <div class="chart-wrap">
+      <canvas id="chart1"></canvas>
+      <div class="tooltip-custom" id="tip1"></div>
+    </div>
+  </div>
+  <div class="insights" id="insights1"></div>
+</div>
+
+<!-- SECTION 2 -->
+<div class="section">
+  <div class="section-head"><span class="section-num">2</span><h2>Top 10 cửa hàng có Tỷ lệ Phạt/Giá trị hàng hóa cao nhất</h2></div>
+  <div class="sub">Tỷ lệ = Tổng tiền phạt ÷ Tổng thành tiền × 100%. Đường nét đứt là tỷ lệ trung bình toàn hệ thống (6,69%).</div>
+  <div class="card">
+    <div class="chart-wrap">
+      <canvas id="chart2"></canvas>
+      <div class="tooltip-custom" id="tip2"></div>
+    </div>
+  </div>
+  <div class="insights" id="insights2"></div>
+</div>
+
+<!-- SECTION 3 -->
+<div class="section">
+  <div class="section-head"><span class="section-num">3</span><h2>Top 10 sản phẩm có Tần suất ghi nhận nhiều nhất</h2></div>
+  <div class="sub">Tần suất = Tổng số lượt ghi nhận tại các cửa hàng (bao gồm cả lượt chưa quá hạn).</div>
+  <div class="card">
+    <div class="chart-wrap">
+      <canvas id="chart3"></canvas>
+      <div class="tooltip-custom" id="tip3"></div>
+    </div>
+  </div>
+  <div class="insights" id="insights3"></div>
+</div>
+
+<!-- SECTION 4: Phân tích theo tỉnh & Aging -->
+<div class="section">
+  <div class="section-head"><span class="section-num">4</span><h2>Phân tích theo Tỉnh &amp; Phân tầng tuổi tồn kho</h2></div>
+  <div class="sub">Bảng phân bổ tiền phạt theo địa bàn và biểu đồ phân tầng số ngày quá hạn.</div>
+  <div class="two-col">
+    <div class="card">
+      <div style="font-weight:700; font-size:13px; margin-bottom:14px; color:var(--ink);">Tiền phạt theo Tỉnh</div>
+      <table class="prov-table" id="prov-table"></table>
+    </div>
+    <div class="card">
+      <div style="font-weight:700; font-size:13px; margin-bottom:14px; color:var(--ink);">Phân tầng số ngày quá hạn</div>
+      <div class="chart-wrap-sm">
+        <canvas id="chart4"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="insights" id="insights4"></div>
+</div>
+
+<!-- COMBINED INSIGHTS -->
+<div class="combo">
+  <div class="combo-head">Tổng hợp các vấn đề tìm ra</div>
+  <div class="combo-sub"></div>
+
+  <div class="combo-insight">
+    <div class="num">1</div>
+    <div class="body">
+      <div class="ct">Sóc Trăng tiếp tục chiếm 47,7% tổng tiền phạt</div>
+      <div class="cd">
+        Với <b>2.781.805 đ</b> tiền phạt từ 54 lô hàng tại 11 cửa hàng, Sóc Trăng dẫn đầu cách biệt. Nguyên nhân cốt lõi vẫn là <b>CH Vĩnh Lợi</b> đang ôm lô tôn lạnh màu đỏ MRL03 tồn <b>1.297 ngày</b> (hơn 3,5 năm) với tiền phạt riêng lô này đã lên <b>1.412.748 đ</b>. Lô này tăng thêm 31 ngày so với tháng 08 và tiếp tục chưa được xử lý.
+      </div>
+    </div>
+  </div>
+
+  <div class="combo-insight">
+    <div class="num">2</div>
+    <div class="body">
+      <div class="ct">56,4% tiền phạt đến từ hàng tồn trên 365 ngày</div>
+      <div class="cd">
+        Chỉ có <b>34 lô (19,2%)</b> có số ngày quá hạn trên 365 ngày nhưng chiếm tới <b>3.287.170 đ (56,4%)</b> tổng tiền phạt. Nhóm "lô hàng chết" này tiếp tục tăng so với tháng 08 (29 lô → 34 lô), báo hiệu tình trạng tích lũy ngày càng nghiêm trọng.
+      </div>
+    </div>
+  </div>
+
+  <div class="combo-insight">
+    <div class="num">3</div>
+    <div class="body">
+      <div class="ct">Cà Mau nổi lên là tỉnh có rủi ro mới: 10 cửa hàng, 881.090 đ</div>
+      <div class="cd">
+        Tháng 09, <b>Cà Mau</b> vươn lên vị trí thứ 2 về tổng tiền phạt với <b>881.090 đ</b> từ 10 cửa hàng. <b>CH Giá Rai</b> dẫn đầu với lô Thép hộp 40x80x1.40mm tồn <b>305 ngày</b> phạt 201.014 đ. Cùng với đó, <b>CH Giá Rai 2</b> có lô tồn 425 ngày. Rủi ro phân tán đều khắp các CH Cà Mau.
+      </div>
+    </div>
+  </div>
+
+  <div class="combo-insight">
+    <div class="num">4</div>
+    <div class="body">
+      <div class="ct">20 lô "0 ngày quá hạn" (11,3%) cần theo dõi chặt trong tháng 10</div>
+      <div class="cd">
+        Có <b>20 lô hàng mới nhập nhưng đã được ghi nhận KPC</b> với số ngày quá hạn = 0, chưa phát sinh tiền phạt. <b>CH Sa Đéc</b> (Đồng Tháp) tiếp tục tập trung lượng lớn: lô 40x80x1.40mm trị giá <b>14.189.754 đ</b>, 50x100x1.40mm <b>5.741.140 đ</b>. Nếu không xử lý gấp, CH Sa Đéc sẽ lọt Top 5 tiền phạt tháng 10 ngay lập tức.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Dữ liệu tổng hợp đến ngày 25/09/2026 – Phòng Kiểm Soát Vùng 2, Hoa Sen Holdings</div>
+
+<script>
+function fmt(n){ return (n||n===0)? Math.round(n).toLocaleString('vi-VN'):'0'; }
+function toggleItem(headerEl){
+  const p=headerEl.parentElement; p.classList.toggle('active');
+  const a=headerEl.querySelector('span:last-child');
+  a.textContent=p.classList.contains('active')?'▲':'▼';
+}
+const hideTimers={};
+function scheduleHide(id){ clearTimeout(hideTimers[id]); hideTimers[id]=setTimeout(()=>{ const t=document.getElementById(id); if(t&&!t.matches(':hover')){ t.style.opacity=0; t.style.pointerEvents='none'; t.dataset.active=''; } },500); }
+function cancelHide(id){ clearTimeout(hideTimers[id]); }
+['tip1','tip2','tip3'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener('mouseenter',()=>{ cancelHide(id); el.style.opacity=1; el.style.pointerEvents='auto'; });
+  el.addEventListener('mouseleave',()=>scheduleHide(id));
+});
+function positionTip(tip,evt,canvas){
+  const wr=canvas.getBoundingClientRect();
+  let l=evt.native.clientX-wr.left+14, t=evt.native.clientY-wr.top-10;
+  tip.style.display='block';
+  const tw=tip.offsetWidth||350, th=tip.offsetHeight||300;
+  if(evt.native.clientX-wr.left+tw+20>wr.width) l=evt.native.clientX-wr.left-tw-14;
+  if(evt.native.clientY-wr.top+th+20>wr.height) t=Math.max(10,evt.native.clientY-wr.top-th-10);
+  tip.style.left=l+'px'; tip.style.top=t+'px';
+}
+
+/* ===== DATA ===== */
+const DATA1={"CH Vĩnh Lợi":{"tinh":"Sóc Trăng","total":1435097.67,"value":3744539.0,"items":[{"name":"Tôn lạnh màu đỏ MRL03 AZ050 17/05: 0.50mmx1200mm G550","days":1297,"penalty":1412748.17,"price":2178486.0},{"name":"Thép hộp mạ kẽm Z080: 13mmx26mmx1.00mmx6.0m","days":15,"penalty":867.35,"price":115647.0},{"name":"Thép hộp mạ kẽm Z080: 13mmx26mmx1.10mmx6.0m","days":39,"penalty":2678.52,"price":137360.0},{"name":"Thép hộp mạ kẽm Z080: 25mmx50mmx1.40mmx6.0m","days":0,"penalty":0.0,"price":170468.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx30mmx1.10mmx6.0m","days":93,"penalty":4725.0,"price":101613.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx30mmx1.10mmx6.0m","days":0,"penalty":0.0,"price":107895.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx30mmx1.20mmx6.0m","days":93,"penalty":5354.99,"price":115161.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx30mmx1.40mmx6.0m","days":0,"penalty":0.0,"price":133643.0},{"name":"Thép hộp mạ kẽm Z080: 40mmx80mmx1.20mmx6.0m","days":0,"penalty":0.0,"price":236868.0},{"name":"Thép hộp mạ kẽm Z080: 50mmx50mmx1.40mmx6.0m","days":39,"penalty":8724.26,"price":447398.0}]},"CH Giá Rai":{"tinh":"Cà Mau","total":375835.16,"value":4001007.0,"items":[{"name":"Tôn lạnh màu đỏ BRL01 AZ050 17/05: 0.50mmx1200mm G550","days":318,"penalty":62018.75,"price":390055.0},{"name":"Thép hộp mạ kẽm Z080: 20mmx40mmx1.10mmx6.0m","days":107,"penalty":22220.16,"price":415330.0},{"name":"Thép hộp mạ kẽm Z080: 40mmx80mmx1.40mmx6.0m","days":305,"penalty":201013.91,"price":1318124.0},{"name":"Thép hộp mạ kẽm Z080: 20mmx40mmx1.40mmx6.0m","days":107,"penalty":6985.76,"price":130575.0},{"name":"Thép hộp mạ kẽm Z080: 25mmx50mmx1.20mmx6.0m","days":93,"penalty":46482.05,"price":999614.0},{"name":"Thép hộp mạ kẽm Z080: 50mmx100mmx1.40mmx6.0m","days":107,"penalty":18074.01,"price":337832.0},{"name":"Thép hộp mạ kẽm Z080: 60mmx120mmx1.40mmx6.0m","days":93,"penalty":19040.68,"price":409477.0}]},"CH Thạnh Trị":{"tinh":"Sóc Trăng","total":336266.07,"value":2914295.0,"items":[{"name":"Thép hộp mạ kẽm Z080: 30mmx30mmx1.10mmx6.0m","days":269,"penalty":13466.01,"price":100119.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx60mmx1.20mmx6.0m","days":269,"penalty":22456.79,"price":166965.0},{"name":"Thép hộp mạ kẽm Z080: 20mmx40mmx1.10mmx6.0m","days":180,"penalty":9188.55,"price":102095.0},{"name":"Thép hộp mạ kẽm Z080: 20mmx40mmx1.40mmx6.0m","days":35,"penalty":2361.36,"price":134935.0},{"name":"Thép hộp mạ kẽm Z080: 25mmx50mmx1.10mmx6.0m","days":33,"penalty":6794.29,"price":411775.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx30mmx1.40mmx6.0m","days":311,"penalty":17372.62,"price":111721.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx60mmx1.20mmx6.0m","days":311,"penalty":77972.21,"price":501429.0},{"name":"Thép hộp mạ kẽm Z080: 40mmx80mmx1.20mmx6.0m","days":354,"penalty":78755.26,"price":444945.0},{"name":"Thép hộp mạ kẽm Z080: 40mmx80mmx1.40mmx6.0m","days":35,"penalty":4859.31,"price":277675.0},{"name":"Thép hộp mạ kẽm Z080: 50mmx100mmx1.40mmx6.0m","days":311,"penalty":103039.9,"price":662636.0}]},"CH TP Bạc Liêu":{"tinh":"Sóc Trăng","total":309235.21,"value":1322571.0,"items":[{"name":"Thép ống nhúng kẽm: 88.3mmx2.60mmx6.0m","days":620,"penalty":237421.56,"price":765876.0},{"name":"Thép hộp mạ kẽm Z120: 100mmx100mmx1.80mmx6.0m","days":258,"penalty":71813.66,"price":556695.0}]},"CH Giồng Trôm":{"tinh":"Bến Tre","total":299466.43,"value":3430995.0,"items":[{"name":"Thép ống nhúng kẽm: 75.6mmx1.90mmx6.0m","days":456,"penalty":106209.01,"price":465829.0},{"name":"Thép ống nhúng kẽm: 42.2mmx1.90mmx6.0m","days":391,"penalty":49838.23,"price":254927.0},{"name":"Thép ống nhúng kẽm: 75.6mmx1.90mmx6.0m","days":46,"penalty":22486.5,"price":977674.0},{"name":"Thép ống mạ kẽm Z080: 90mmx1.40mmx6.0m","days":216,"penalty":29409.59,"price":272311.0},{"name":"Gạch 800x800P Arenal N8301 A1","days":8,"penalty":2458.69,"price":614672.0},{"name":"Gạch 500x500SV Arenal N5105 A1","days":179,"penalty":6105.15,"price":68214.0},{"name":"Gạch 500x500SV Laphome B5101 A1","days":80,"penalty":4115.36,"price":102884.0},{"name":"Gạch 500x500SV Laphome B5103 A1","days":39,"penalty":6446.88,"price":330609.0},{"name":"Thép hộp mạ kẽm Z080: 25mmx25mmx1.20mmx6.0m","days":216,"penalty":9445.25,"price":87456.0},{"name":"Thép ống mạ kẽm Z080: 76mmx1.40mmx6.0m","days":491,"penalty":62950.86,"price":256419.0}]},"CH Gò Công":{"tinh":"Tiền Giang","total":273841.44,"value":3981140.0,"items":[{"name":"Thép hộp mạ kẽm Z080: 20mmx40mmx1.40mmx6.0m","days":58,"penalty":58897.03,"price":2030932.0},{"name":"Thép hộp mạ kẽm Z080: 20mmx20mmx1.10mmx6.0m","days":529,"penalty":17278.73,"price":65326.0},{"name":"Thép hộp mạ kẽm Z080: 20mmx40mmx1.20mmx6.0m","days":208,"penalty":12001.81,"price":115402.0},{"name":"Thép hộp mạ kẽm Z080: 20mmx40mmx1.40mmx6.0m","days":58,"penalty":31411.76,"price":1083164.0},{"name":"Thép hộp mạ kẽm Z120: 100mmx100mmx1.80mmx6.0m","days":399,"penalty":105342.78,"price":528034.0},{"name":"Thép ống mạ kẽm Z080: 49mmx1.40mmx6.0m","days":618,"penalty":48909.14,"price":158282.0}]},"CH Ngã Năm":{"tinh":"Sóc Trăng","total":210218.16,"value":6121596.0,"items":[{"name":"Thép hộp mạ kẽm Z080: 20mmx40mmx1.40mmx6.0m","days":154,"penalty":9373.21,"price":121730.0},{"name":"Thép hộp mạ kẽm Z080: 20mmx40mmx1.40mmx6.0m","days":35,"penalty":4701.22,"price":268641.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx30mmx1.20mmx6.0m","days":35,"penalty":2042.74,"price":116728.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx60mmx1.10mmx6.0m","days":81,"penalty":6176.82,"price":152514.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx60mmx1.20mmx6.0m","days":85,"penalty":7228.91,"price":170092.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx60mmx1.40mmx6.0m","days":27,"penalty":35242.63,"price":2610565.0},{"name":"Thép hộp mạ kẽm Z080: 50mmx100mmx1.40mmx6.0m","days":154,"penalty":24923.13,"price":323677.0},{"name":"Thép hộp mạ kẽm Z080: 50mmx100mmx1.40mmx6.0m","days":85,"penalty":14904.96,"price":350705.0},{"name":"Thép hộp mạ kẽm Z120: 50mmx100mmx1.80mmx6.0m","days":154,"penalty":32396.83,"price":420738.0},{"name":"Thép ống mạ kẽm Z080: 76mmx1.40mmx6.0m","days":154,"penalty":40555.44,"price":526694.0},{"name":"Thép hộp mạ kẽm Z080: 75mmx75mmx1.40mmx6.0m","days":74,"penalty":26811.49,"price":724635.0},{"name":"Thép hộp mạ kẽm Z080: 75mmx75mmx1.40mmx6.0m","days":35,"penalty":5860.35,"price":334877.0}]},"CH Chợ Gạo":{"tinh":"Tiền Giang","total":188405.11,"value":2099062.0,"items":[{"name":"Thép ống mạ kẽm Z080: 90mmx1.40mmx6.0m","days":77,"penalty":39108.65,"price":1015809.0},{"name":"Thép ống nhúng kẽm: 88.3mmx2.10mmx6.0m","days":6,"penalty":1822.6,"price":607532.0},{"name":"Tấm cách nhiệt A2 CT: 4mmx1.55mx40m","days":620,"penalty":88053.02,"price":284042.0},{"name":"Tấm cách nhiệt AP Cát Tường, kích thước: 40mx1.55m","days":620,"penalty":59420.49,"price":191679.0}]},"CH Sa Đéc":{"tinh":"Đồng Tháp","total":177581.49,"value":30730116.0,"items":[{"name":"Thép hộp mạ kẽm Z080: 14mmx14mmx1.00mmx6.0m","days":8,"penalty":169.22,"price":42304.0},{"name":"Thép hộp mạ kẽm Z080: 20mmx20mmx1.20mmx6.0m","days":7,"penalty":273.32,"price":78092.0},{"name":"Thép hộp mạ kẽm Z080: 25mmx50mmx1.20mmx6.0m","days":8,"penalty":824.56,"price":206139.0},{"name":"Thép hộp mạ kẽm Z080: 40mmx80mmx1.20mmx6.0m","days":7,"penalty":18475.81,"price":5278802.0},{"name":"Thép hộp mạ kẽm Z080: 40mmx80mmx1.40mmx6.0m","days":7,"penalty":49664.14,"price":14189754.0},{"name":"Thép hộp mạ kẽm Z080: 40mmx80mmx1.40mmx6.0m","days":7,"penalty":3748.24,"price":1070925.0},{"name":"Thép hộp mạ kẽm Z080: 50mmx100mmx1.40mmx6.0m","days":7,"penalty":20093.99,"price":5741140.0},{"name":"Thép ống mạ kẽm Z080: 21mmx1.10mmx6.0m","days":74,"penalty":2069.41,"price":55930.0},{"name":"Thép ống mạ kẽm Z080: 49mmx1.10mmx6.0m","days":7,"penalty":1400.41,"price":400117.0},{"name":"Thép ống mạ kẽm Z080: 76mmx1.10mmx6.0m","days":687,"penalty":74288.4,"price":216269.0},{"name":"Thép ống mạ kẽm Z080: 76mmx1.40mmx6.0m","days":7,"penalty":950.42,"price":271548.0},{"name":"Thép hộp mạ kẽm Z080: 75mmx75mmx1.40mmx6.0m","days":3,"penalty":4127.49,"price":2751657.0},{"name":"Thép hộp mạ kẽm Z080: 90mmx90mmx1.40mmx6.0m","days":7,"penalty":1496.04,"price":427439.0}]},"CH Hòa Bình":{"tinh":"Sóc Trăng","total":166399.44,"value":1918309.0,"items":[{"name":"Thép hộp mạ kẽm Z080: 25mmx50mmx1.10mmx6.0m","days":369,"penalty":23004.01,"price":124683.0},{"name":"Thép hộp mạ kẽm Z080: 30mmx60mmx1.40mmx6.0m","days":93,"penalty":19261.14,"price":414218.0},{"name":"Thép hộp mạ kẽm Z080: 40mmx80mmx1.20mmx6.0m","days":195,"penalty":22550.58,"price":231288.0},{"name":"Thép hộp mạ kẽm Z080: 40mmx80mmx1.20mmx6.0m","days":293,"penalty":33060.95,"price":225672.0},{"name":"Thép hộp mạ kẽm Z080: 40mmx80mmx1.20mmx6.0m","days":93,"penalty":10754.89,"price":231288.0},{"name":"Thép hộp mạ kẽm Z080: 50mmx100mmx1.20mmx6.0m","days":0,"penalty":0.0,"price":296846.0},{"name":"Thép hộp mạ kẽm Z080: 60mmx120mmx1.40mmx6.0m","days":293,"penalty":57767.0,"price":394314.0}]}};
+
+const DATA2={"CH Châu Thành":{"tinh":"Đồng Tháp","ratio":46.1,"total_penalty":40097.32,"total_value":86979.0,"n":2,"avg_days":922,"items":[{"name":"Tấm cách nhiệt Ranko P2","days":922,"penalty":27759.58,"price":60216.0},{"name":"Tấm cách nhiệt Ranko P2","days":922,"penalty":12337.74,"price":26763.0}]},"CH Vĩnh Lợi":{"tinh":"Sóc Trăng","ratio":38.33,"total_penalty":1435097.67,"total_value":3744539.0,"n":10,"avg_days":158,"items":[{"name":"Tôn lạnh màu đỏ MRL03 AZ050 17/05","days":1297,"penalty":1412748.17,"price":2178486.0},{"name":"Thép hộp Z080: 30x30x1.20m","days":93,"penalty":5354.99,"price":115161.0},{"name":"Thép hộp Z080: 50x50x1.40m","days":39,"penalty":8724.26,"price":447398.0},{"name":"Thép hộp Z080: 30x30x1.10m (lô1)","days":93,"penalty":4725.0,"price":101613.0},{"name":"Thép hộp Z080: 13x26x1.10m","days":39,"penalty":2678.52,"price":137360.0},{"name":"Thép hộp Z080: 13x26x1.00m","days":15,"penalty":867.35,"price":115647.0},{"name":"Thép hộp Z080: 30x30x1.40m","days":0,"penalty":0.0,"price":133643.0},{"name":"Thép hộp Z080: 40x80x1.20m","days":0,"penalty":0.0,"price":236868.0},{"name":"Thép hộp Z080: 25x50x1.40m","days":0,"penalty":0.0,"price":170468.0},{"name":"Thép hộp Z080: 30x30x1.10m (lô2)","days":0,"penalty":0.0,"price":107895.0}]},"CH Hồng Dân":{"tinh":"Sóc Trăng","ratio":36.17,"total_penalty":105144.53,"total_value":290661.0,"n":2,"avg_days":680,"items":[{"name":"Thép hộp Z080: 30x60x0.90m","days":1013,"penalty":83223.02,"price":164310.0},{"name":"Thép hộp Z080: 20x40x1.40m","days":347,"penalty":21921.9,"price":126351.0}]},"CH TP Bạc Liêu":{"tinh":"Sóc Trăng","ratio":23.38,"total_penalty":309235.21,"total_value":1322571.0,"n":2,"avg_days":439,"items":[{"name":"Thép ống nhúng kẽm: 88.3mmx2.60mm","days":620,"penalty":237421.56,"price":765876.0},{"name":"Thép hộp Z120: 100x100x1.80m","days":258,"penalty":71813.66,"price":556695.0}]},"CH Châu Thành 3":{"tinh":"Bến Tre","ratio":22.2,"total_penalty":71516.86,"total_value":322148.0,"n":1,"avg_days":444,"items":[{"name":"Thép hộp Z080: 50x100x1.40m","days":444,"penalty":71516.86,"price":322148.0}]},"CH Đầm Dơi":{"tinh":"Cà Mau","ratio":21.94,"total_penalty":135258.08,"total_value":616457.0,"n":4,"avg_days":440,"items":[{"name":"Thép hộp Z080: 30x60x1.10m","days":458,"penalty":69685.62,"price":304304.0},{"name":"Thép hộp Z080: 20x20x1.10m","days":458,"penalty":14724.93,"price":64301.0},{"name":"Thép hộp Z080: 25x25x1.10m","days":458,"penalty":18630.07,"price":81354.0},{"name":"Thép hộp Z080: 30x60x1.20m","days":387,"penalty":32217.36,"price":166498.0}]},"CH Lấp Vò":{"tinh":"Đồng Tháp","ratio":18.85,"total_penalty":53538.15,"total_value":284022.0,"n":1,"avg_days":377,"items":[{"name":"Thép hộp Z080: 50x100x1.20m","days":377,"penalty":53538.15,"price":284022.0}]},"CH Mỹ Tho":{"tinh":"Tiền Giang","ratio":18.35,"total_penalty":165740.32,"total_value":903217.0,"n":2,"avg_days":367,"items":[{"name":"Thép hộp Z120: 30x60x1.80m","days":367,"penalty":131030.56,"price":714063.0},{"name":"Thép hộp Z080: 30x60x1.40m","days":367,"penalty":34709.76,"price":189154.0}]},"CH Cái Nước":{"tinh":"Cà Mau","ratio":17.25,"total_penalty":55525.51,"total_value":321887.0,"n":1,"avg_days":345,"items":[{"name":"Thép hộp Z080: 75x75x1.40m","days":345,"penalty":55525.51,"price":321887.0}]},"CH Châu Thành 2":{"tinh":"Sóc Trăng","ratio":16.26,"total_penalty":89384.03,"total_value":549634.0,"n":3,"avg_days":439,"items":[{"name":"Thép ống Z080: 60mmx1.10m","days":587,"penalty":48662.59,"price":165801.0},{"name":"Thép ống Z080: 42mmx1.40m","days":280,"penalty":40196.66,"price":287119.0},{"name":"Thép hộp Z080: 25x25x1.10m","days":636,"penalty":26438.52,"price":83140.0},{"name":"Thép hộp Z080: 30x60x1.20m","days":95,"penalty":14282.92,"price":300693.0},{"name":"Thép ống Z080: 21mmx1.10m","days":0,"penalty":0.0,"price":116983.0}]}};
+
+const OVERALL_RATIO=6.69;
+
+const DATA3={"Thép hộp mạ kẽm Z080: 40mmx80mmx1.20mmx6.0m":{"freq":10,"total":253137.7,"items":[{"name":"CH Thạnh Trị","count":2,"days":243,"penalty":101305.8,"price":666233.0},{"name":"CH Hòa Bình","count":3,"days":194,"penalty":66366.4,"price":688248.0},{"name":"CH Giá Rai 2","count":1,"days":253,"penalty":29410.36,"price":232493.0},{"name":"CH Cái Nước","count":1,"days":66,"penalty":22649.0,"price":686343.0},{"name":"CH Sa Đéc","count":1,"days":7,"penalty":18475.81,"price":5278802.0},{"name":"CH Châu Thành","count":1,"days":9,"penalty":0.0,"price":239251.0},{"name":"CH TP Cà Mau 3","count":1,"days":0,"penalty":0.0,"price":237985.0}]},"Thép hộp mạ kẽm Z080: 50mmx100mmx1.40mmx6.0m":{"freq":9,"total":277810.99,"items":[{"name":"CH Thạnh Trị","count":1,"days":311,"penalty":103039.9,"price":662636.0},{"name":"CH Châu Thành 3","count":1,"days":444,"penalty":71516.86,"price":322148.0},{"name":"CH Ngã Năm","count":2,"days":119,"penalty":39828.09,"price":674382.0},{"name":"CH Sa Đéc","count":1,"days":7,"penalty":20093.99,"price":5741140.0},{"name":"CH Giá Rai","count":1,"days":107,"penalty":18074.01,"price":337832.0},{"name":"CH Gò Công Tây 2","count":1,"days":102,"penalty":17163.69,"price":336543.0},{"name":"CH Châu Thành 2","count":1,"days":37,"penalty":6414.95,"price":346754.0},{"name":"CH Gò Công Tây","count":1,"days":10,"penalty":1679.81,"price":335962.0}]},"Thép hộp mạ kẽm Z080: 30mmx60mmx1.20mmx6.0m":{"freq":9,"total":177345.6,"items":[{"name":"CH Thạnh Trị","count":2,"days":290,"penalty":100429.0,"price":668394.0},{"name":"CH Ngã Năm","count":1,"days":85,"penalty":7228.91,"price":170092.0},{"name":"CH Cao Lãnh 3","count":1,"days":215,"penalty":19241.64,"price":178992.0},{"name":"CH Châu Thành 2","count":1,"days":95,"penalty":14282.92,"price":300693.0},{"name":"CH Cao Lãnh 2","count":1,"days":0,"penalty":0.0,"price":163495.0},{"name":"CH Châu Thành","count":2,"days":9,"penalty":3946.63,"price":877029.0},{"name":"CH Châu Thành 2 (ĐT)","count":1,"days":37,"penalty":2911.38,"price":157372.0}]},"Thép hộp mạ kẽm Z080: 40mmx80mmx1.40mmx6.0m":{"freq":8,"total":310455.86,"items":[{"name":"CH Giá Rai","count":1,"days":305,"penalty":201013.91,"price":1318124.0},{"name":"CH Tân Hồng","count":1,"days":282,"penalty":36973.16,"price":262221.0},{"name":"CH Sa Đéc","count":2,"days":7,"penalty":53412.38,"price":15260679.0},{"name":"CH Giá Rai 2","count":1,"days":97,"penalty":12962.35,"price":267265.0},{"name":"CH Thạnh Trị","count":1,"days":35,"penalty":4859.31,"price":277675.0},{"name":"CH Tân Hồng (mới)","count":1,"days":0,"penalty":0.0,"price":1117510.0},{"name":"CH Châu Thành","count":1,"days":9,"penalty":1235.01,"price":274446.0}]},"Thép hộp mạ kẽm Z080: 75mmx75mmx1.40mmx6.0m":{"freq":8,"total":140264.75,"items":[{"name":"CH Cái Nước","count":1,"days":345,"penalty":55525.51,"price":321887.0},{"name":"CH Ngã Năm","count":2,"days":54,"penalty":32671.84,"price":1059512.0},{"name":"CH Tân Hồng","count":1,"days":70,"penalty":12665.9,"price":361883.0},{"name":"CH Tam Nông","count":1,"days":70,"penalty":11738.19,"price":335377.0},{"name":"CH Sa Đéc","count":1,"days":3,"penalty":4127.49,"price":2751657.0},{"name":"CH TP Cà Mau 2","count":1,"days":89,"penalty":14877.15,"price":334318.0},{"name":"CH Cái Bè 3","count":1,"days":26,"penalty":8658.56,"price":666043.0}]},"Thép hộp mạ kẽm Z080: 30mmx60mmx1.40mmx6.0m":{"freq":8,"total":121430.42,"items":[{"name":"CH Mỹ Tho","count":1,"days":367,"penalty":34709.76,"price":189154.0},{"name":"CH Ngã Năm","count":1,"days":27,"penalty":35242.63,"price":2610565.0},{"name":"CH Hòa Bình","count":1,"days":93,"penalty":19261.14,"price":414218.0},{"name":"CH Gò Công Tây 2","count":1,"days":102,"penalty":10150.17,"price":199023.0},{"name":"CH Cao Lãnh 3","count":1,"days":215,"penalty":22066.52,"price":205270.0},{"name":"CH Tân Hồng","count":1,"days":0,"penalty":0.0,"price":207024.0},{"name":"CH Tháp Mười","count":2,"days":0,"penalty":0.0,"price":409298.0}]},"Thép hộp mạ kẽm Z080: 20mmx40mmx1.40mmx6.0m":{"freq":7,"total":135651.95,"items":[{"name":"CH Gò Công","count":2,"days":58,"penalty":90308.79,"price":3114096.0},{"name":"CH Hồng Dân","count":1,"days":347,"penalty":21921.9,"price":126351.0},{"name":"CH Ngã Năm","count":2,"days":94,"penalty":14074.43,"price":390371.0},{"name":"CH Giá Rai","count":1,"days":107,"penalty":6985.76,"price":130575.0},{"name":"CH Thạnh Trị","count":1,"days":35,"penalty":2361.36,"price":134935.0}]},"Thép hộp mạ kẽm Z080: 20mmx40mmx1.20mmx6.0m":{"freq":7,"total":65443.95,"items":[{"name":"CH U Minh","count":1,"days":256,"penalty":13975.17,"price":109181.0},{"name":"CH U Minh (mới)","count":1,"days":0,"penalty":0.0,"price":115990.0},{"name":"CH Gò Công","count":1,"days":208,"penalty":12001.81,"price":115402.0},{"name":"CH Giá Rai 2","count":1,"days":253,"penalty":13865.79,"price":109611.0},{"name":"CH Giá Rai 2 (lô2)","count":1,"days":425,"penalty":23046.9,"price":108456.0},{"name":"CH Long Phú","count":1,"days":44,"penalty":2554.49,"price":116113.0},{"name":"CH Tháp Mười","count":1,"days":0,"penalty":0.0,"price":115513.0}]},"Thép hộp mạ kẽm Z080: 25mmx50mmx1.40mmx6.0m":{"freq":5,"total":31179.24,"items":[{"name":"CH Gò Công Tây","count":1,"days":22,"penalty":1822.6,"price":165691.0},{"name":"CH Gò Công Tây 2","count":1,"days":102,"penalty":8391.85,"price":164546.0},{"name":"CH Long Phú","count":1,"days":44,"penalty":3823.49,"price":173795.0},{"name":"CH Vĩnh Lợi","count":1,"days":0,"penalty":0.0,"price":170468.0},{"name":"CH Tân Hồng (mới)","count":1,"days":0,"penalty":0.0,"price":207024.0}]},"Thép hộp mạ kẽm Z080: 60mmx120mmx1.40mmx6.0m":{"freq":4,"total":147295.09,"items":[{"name":"CH Giá Rai","count":1,"days":93,"penalty":19040.68,"price":409477.0},{"name":"CH Hòa Bình","count":1,"days":293,"penalty":57767.0,"price":394314.0},{"name":"CH Gò Công Tây 2","count":1,"days":102,"penalty":19614.65,"price":384601.0},{"name":"CH Giá Rai 2","count":1,"days":262,"penalty":50872.58,"price":397442.0}]}};
+
+const DATA4_TINH={"Bến Tre":{"total_penalty":436196.93,"total_value":5590161.0,"n_stores":3,"n_items":12},"Cà Mau":{"total_penalty":881090.46,"total_value":8393914.0,"n_stores":10,"n_items":29},"Sóc Trăng":{"total_penalty":2781805.19,"total_value":19518518.0,"n_stores":11,"n_items":54},"Tiền Giang":{"total_penalty":916180.02,"total_value":14648934.0,"n_stores":9,"n_items":30},"Đồng Tháp":{"total_penalty":815610.59,"total_value":38941708.0,"n_stores":10,"n_items":51}};
+
+const AGING_COUNTS={"0 ngày (mới)":20,"1-30 ngày":25,"31-90 ngày":37,"91-180 ngày":24,"181-365 ngày":36,">365 ngày":34};
+const AGING_VALUES={"0 ngày (mới)":0,"1-30 ngày":166957.0,"31-90 ngày":533816.0,"91-180 ngày":430351.0,"181-365 ngày":1412591.0,">365 ngày":3287170.0};
+
+/* ===== CHART 1 ===== */
+const stores1=Object.keys(DATA1).sort((a,b)=>DATA1[b].total-DATA1[a].total);
+const totals1=stores1.map(s=>DATA1[s].total);
+const grand1=totals1.reduce((a,b)=>a+b,0);
+const ctx1=document.getElementById('chart1').getContext('2d');
+const bc1=stores1.map((_,i)=>i===0?'#8B100A':(i<3?'#b5372f':'#d9a29d'));
+new Chart(ctx1,{
+  type:'bar',
+  data:{labels:stores1,datasets:[{label:'Tiền phạt (đ)',data:totals1,backgroundColor:bc1,borderRadius:5,maxBarThickness:44}]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+    plugins:{legend:{display:false},tooltip:{enabled:false}},
+    scales:{x:{grid:{display:false},ticks:{font:{size:10.5},color:'#4a453d',maxRotation:35,minRotation:20}},
+      y:{grid:{color:'#eee3d5'},ticks:{callback:v=>fmt(v/1000)+'k',font:{size:11}},title:{display:true,text:'Tiền phạt (đ)',color:'#6b6459',font:{size:11}}}},
+    onHover:(evt,elements)=>{
+      const tip=document.getElementById('tip1');
+      if(tip.matches(':hover')) return;
+      if(elements.length){
+        cancelHide('tip1'); const idx=elements[0].index; const name=stores1[idx];
+        if(tip.dataset.active===name&&tip.style.opacity==='1') return;
+        tip.dataset.active=name;
+        const info=DATA1[name];
+        const items=[...info.items].sort((a,b)=>b.penalty-a.penalty);
+        let html=`<div class="t-title">${name} <span style="font-size:10px;font-weight:400;color:#c9c4b8">${info.tinh}</span></div><div class="t-total">Tổng phạt: ${fmt(info.total)} đ</div><div class="t-sub">Giá trị HH: ${fmt(info.value)} đ · ${items.length} lô</div>`;
+        items.forEach((it,i)=>{
+          const isZ=!it.days&&!it.penalty;
+          html+=`<div class="t-item"><div class="t-item-header" onclick="toggleItem(this)"><span>${it.name}</span><span style="font-size:10px;margin-left:6px">▼</span></div><div class="t-item-content"><div>GT: <span class="vl">${fmt(it.price)} đ</span></div><div>`+(isZ?`<span class="zero">Chưa quá hạn — chưa phát sinh phạt</span>`:`<span class="dy">Quá hạn ${it.days} ngày</span> <span class="vl">${fmt(it.penalty)} đ</span>`)+`</div></div></div>`;
+        });
+        tip.innerHTML=html; tip.style.opacity=1; tip.style.pointerEvents='auto';
+        positionTip(tip,evt,evt.native.target);
+      } else scheduleHide('tip1');
+    }
+  }
+});
+const top1_1=stores1[0],ti1=DATA1[top1_1];
+const top3s1=stores1.slice(0,3).reduce((a,s)=>a+DATA1[s].total,0);
+const topItem1=[...ti1.items].sort((a,b)=>b.penalty-a.penalty)[0];
+document.getElementById('insights1').innerHTML=[
+  {k:fmt(grand1)+' đ',d:`Tổng tiền phạt của Top 10 cửa hàng trong tháng 09/2026`},
+  {k:top1_1,d:`Cao nhất: ${(ti1.total/grand1*100).toFixed(1)}% của tổng tiền phạt - riêng lô "${topItem1.name}" chiếm ${(topItem1.penalty/ti1.total*100).toFixed(0)}% phạt của cửa hàng (${fmt(topItem1.penalty)} đ, tồn ${topItem1.days} ngày)`},
+  {k:(top3s1/grand1*100).toFixed(0)+'%',d:`Tỷ trọng phạt của 3 cửa hàng (${stores1.slice(0,3).join(', ')}) so với tổng 10 cửa hàng cao nhất`},
+  {k:'CH Sa Đéc cảnh báo tháng 10',d:`13 lô, tổng phạt 177k đ nhưng tổng giá trị HH lên tới 30,7 triệu đồng. Lô 40x80x1.40mm (14,2 triệu) và lô 50x100x1.40mm (5,7 triệu) sẽ bùng phát phạt mạnh trong tháng 10`}
+].map(i=>`<div class="insight"><div class="k">${i.k}</div><div class="d">${i.d}</div></div>`).join('');
+
+/* ===== CHART 2 ===== */
+const stores2=Object.keys(DATA2).sort((a,b)=>DATA2[b].ratio-DATA2[a].ratio);
+const ratios2=stores2.map(s=>DATA2[s].ratio);
+const ctx2=document.getElementById('chart2').getContext('2d');
+const bc2=stores2.map((_,i)=>i===0?'#8B100A':(i<3?'#b5372f':'#d9a29d'));
+new Chart(ctx2,{
+  data:{labels:stores2,datasets:[
+    {type:'bar',label:'Tỷ lệ Phạt/Giá trị (%)',data:ratios2,backgroundColor:bc2,borderRadius:5,maxBarThickness:44,order:2},
+    {type:'line',label:'TB toàn hệ thống (6,69%)',data:stores2.map(()=>OVERALL_RATIO),borderColor:'#4a453d',borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false,order:1}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+    plugins:{legend:{display:true,position:'top',align:'end',labels:{boxWidth:14,font:{size:11}}},tooltip:{enabled:false}},
+    scales:{x:{grid:{display:false},ticks:{font:{size:10.5},color:'#4a453d',maxRotation:35,minRotation:20}},
+      y:{grid:{color:'#eee3d5'},ticks:{callback:v=>v+'%',font:{size:11}},title:{display:true,text:'Tỷ lệ Phạt/Giá trị (%)',color:'#6b6459',font:{size:11}}}},
+    onHover:(evt,elements)=>{
+      const tip=document.getElementById('tip2');
+      if(tip.matches(':hover')) return;
+      const bels=elements.filter(e=>e.datasetIndex===0);
+      if(bels.length){
+        cancelHide('tip2'); const idx=bels[0].index; const name=stores2[idx];
+        if(tip.dataset.active===name&&tip.style.opacity==='1') return;
+        tip.dataset.active=name;
+        const info=DATA2[name];
+        const items=[...info.items].sort((a,b)=>b.penalty-a.penalty);
+        let html=`<div class="t-title">${name} <span style="font-size:10px;font-weight:400;color:#c9c4b8">${info.tinh}</span></div><div class="t-total">Tỷ lệ phạt/giá trị: ${info.ratio}%</div><div class="t-sub">Phạt ${fmt(info.total_penalty)} đ / GT ${fmt(info.total_value)} đ · ${info.n} lô · TB ${info.avg_days} ngày</div>`;
+        items.forEach((it,i)=>{
+          const isZ=!it.days&&!it.penalty;
+          html+=`<div class="t-item"><div class="t-item-header" onclick="toggleItem(this)"><span>${it.name}</span><span style="font-size:10px;margin-left:6px">▼</span></div><div class="t-item-content"><div>GT: <span class="vl">${fmt(it.price)} đ</span></div><div>`+(isZ?`<span class="zero">Chưa quá hạn</span>`:`<span class="dy">Quá hạn ${it.days} ngày</span> <span class="vl">${fmt(it.penalty)} đ</span>`)+`</div></div></div>`;
+        });
+        tip.innerHTML=html; tip.style.opacity=1; tip.style.pointerEvents='auto';
+        positionTip(tip,evt,evt.native.target);
+      } else scheduleHide('tip2');
+    }
+  }
+});
+const top1_2=stores2[0],ti2=DATA2[top1_2];
+const top3_2=stores2.slice(0,3);
+document.getElementById('insights2').innerHTML=[
+  {k:OVERALL_RATIO+'%',d:`Tỷ lệ phạt/giá trị hàng hóa trung bình toàn hệ thống tháng 09, tăng nhẹ so với tháng 08 (6,13%)`},
+  {k:top1_2+' — '+ti2.ratio+'%',d:`Tỷ lệ cao nhất: 2 lô Tấm cách nhiệt Ranko P2 tồn 922 ngày (hơn 2,5 năm). Giá trị HH chỉ 87k nhưng phạt đã 40k`},
+  {k:'4/10 CH đến từ Sóc Trăng',d:`Gồm ${stores2.filter(s=>DATA2[s].tinh==='Sóc Trăng').join(', ')}, phản ánh rủi ro tập trung tại Sóc Trăng`},
+  {k:'CH Đầm Dơi: 4 lô tồn 458 ngày',d:`3 mã hàng thép hộp tồn kho từ tháng 05/2025, tỷ lệ phạt 21,94%. Không có chuyển biến so với tháng 08`}
+].map(i=>`<div class="insight"><div class="k">${i.k}</div><div class="d">${i.d}</div></div>`).join('');
+
+/* ===== CHART 3 ===== */
+const SHORT3={};
+Object.keys(DATA3).forEach(k=>{SHORT3[k]=k.replace('Thép hộp mạ kẽm Z080: ','').replace('Thép hộp mạ kẽm Z120: ','Z120 ').replace('Thép ống mạ kẽm Z080: ','Ống ');});
+const products3=Object.keys(DATA3).sort((a,b)=>{if(DATA3[b].freq!==DATA3[a].freq) return DATA3[b].freq-DATA3[a].freq; return DATA3[b].total-DATA3[a].total;});
+const freqs3=products3.map(p=>DATA3[p].freq);
+const totalFreq3=freqs3.reduce((a,b)=>a+b,0);
+const ctx3=document.getElementById('chart3').getContext('2d');
+const bc3=products3.map((_,i)=>i===0?'#8B100A':(i<3?'#b5372f':'#d9a29d'));
+new Chart(ctx3,{
+  type:'bar',
+  data:{labels:products3.map(p=>SHORT3[p]),datasets:[{label:'Số lượt ghi nhận',data:freqs3,backgroundColor:bc3,borderRadius:5,maxBarThickness:44}]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+    plugins:{legend:{display:false},tooltip:{enabled:false}},
+    scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#4a453d',maxRotation:40,minRotation:25}},
+      y:{grid:{color:'#eee3d5'},ticks:{stepSize:1,font:{size:11}},title:{display:true,text:'Số lượt',color:'#6b6459',font:{size:11}}}},
+    onHover:(evt,elements)=>{
+      const tip=document.getElementById('tip3');
+      if(tip.matches(':hover')) return;
+      if(elements.length){
+        cancelHide('tip3'); const idx=elements[0].index; const name=products3[idx];
+        if(tip.dataset.active===name&&tip.style.opacity==='1') return;
+        tip.dataset.active=name;
+        const info=DATA3[name];
+        const items=[...info.items].sort((a,b)=>b.penalty-a.penalty);
+        let html=`<div class="t-title">${name}</div><div class="t-total">${info.freq} lượt · Tổng phạt: ${fmt(info.total)} đ</div>`;
+        items.forEach((it,i)=>{
+          const cntL=it.count>1?`<span class="cnt">${it.count} lượt</span>`:'';
+          const isZ=!it.days&&!it.penalty;
+          html+=`<div class="t-item"><div class="t-item-header" onclick="toggleItem(this)"><span>${it.name}${cntL}</span><span style="font-size:10px;margin-left:6px">▼</span></div><div class="t-item-content"><div>GT: <span class="vl">${fmt(it.price)} đ</span></div><div>`+(isZ?`<span class="zero">Chưa quá hạn</span>`:`<span class="dy">TB ${it.days} ngày</span> <span class="vl">${fmt(it.penalty)} đ</span>`)+`</div></div></div>`;
+        });
+        tip.innerHTML=html; tip.style.opacity=1; tip.style.pointerEvents='auto';
+        positionTip(tip,evt,evt.native.target);
+      } else scheduleHide('tip3');
+    }
+  }
+});
+const top1_3=products3[0];
+const byVal3=[...products3].sort((a,b)=>DATA3[b].total-DATA3[a].total);
+document.getElementById('insights3').innerHTML=[
+  {k:totalFreq3+' lô hàng',d:`Tổng số lượt ghi nhận KPC của Top 10 mặt hàng được ghi nhận nhiều nhất (bao gồm cả lượt chưa quá hạn)`},
+  {k:SHORT3[top1_3],d:`Xuất hiện nhiều nhất: ${DATA3[top1_3].freq} lượt tại ${DATA3[top1_3].items.length} cửa hàng, tổng phạt ${fmt(DATA3[top1_3].total)} đ`},
+  {k:'40x80x1.40mm: tổng phạt cao nhất nhóm',d:`${fmt(DATA3[byVal3[0]].total)} đ — CH Giá Rai chiếm 201k đ (65%) từ 1 lô tồn 305 ngày. SA ĐÉC tích lũy 53k đ từ 53 cây chỉ trong 7 ngày`},
+  {k:'Thép hộp phổ biến trải đều 7–10 CH',d:`40x80x1.20mm (10 lượt), 50x100x1.40mm (9 lượt), 30x60x1.20mm (9 lượt) xuất hiện ở khắp hệ thống, cho thấy vấn đề hệ thống trong quản lý hàng tồn`}
+].map(i=>`<div class="insight"><div class="k">${i.k}</div><div class="d">${i.d}</div></div>`).join('');
+
+/* ===== SECTION 4: Province Table ===== */
+const maxPenalty=Math.max(...Object.values(DATA4_TINH).map(t=>t.total_penalty));
+const totalPenaltyAll=Object.values(DATA4_TINH).reduce((a,t)=>a+t.total_penalty,0);
+const tinhSorted=Object.keys(DATA4_TINH).sort((a,b)=>DATA4_TINH[b].total_penalty-DATA4_TINH[a].total_penalty);
+document.getElementById('prov-table').innerHTML=`
+<thead><tr>
+  <th>Tỉnh</th><th>Tiền phạt</th><th>% Tổng</th><th>CH</th><th>Lô</th><th>Tỷ lệ Phạt/Giá trị HH</th>
+</tr></thead><tbody>
+`+tinhSorted.map(t=>{
+  const info=DATA4_TINH[t];
+  const pct=(info.total_penalty/totalPenaltyAll*100).toFixed(1);
+  const barW=Math.round(info.total_penalty/maxPenalty*100);
+  const ratio=(info.total_penalty/info.total_value*100).toFixed(2);
+  const isHigh=parseFloat(ratio)>10;
+  return `<tr>
+    <td><b>${t}</b><br><div style="margin-top:4px"><span class="prov-bar" style="width:${barW}%"></span></div></td>
+    <td style="font-weight:700;color:var(--maroon)">${fmt(info.total_penalty)} đ</td>
+    <td><span class="badge">${pct}%</span></td>
+    <td style="text-align:center">${info.n_stores}</td>
+    <td style="text-align:center">${info.n_items}</td>
+    <td style="color:${isHigh?'var(--maroon)':'#4a453d'};font-weight:${isHigh?700:400}">${ratio}%</td>
+  </tr>`;
+}).join('')+'</tbody>';
+
+/* ===== CHART 4: Aging ===== */
+const agingLabels=Object.keys(AGING_COUNTS);
+const agingColors=['#c8e6c9','#fff59d','#ffe0b2','#ffccbc','#ef9a9a','#8B100A'];
+const ctx4=document.getElementById('chart4').getContext('2d');
+new Chart(ctx4,{
+  type:'bar',
+  data:{labels:agingLabels,datasets:[
+    {label:'Số lô',data:Object.values(AGING_COUNTS),backgroundColor:agingColors,borderRadius:5,maxBarThickness:36,yAxisID:'y'},
+    {type:'line',label:'Tiền phạt (đ)',data:Object.values(AGING_VALUES),borderColor:'#8B100A',borderWidth:2,pointRadius:4,pointBackgroundColor:'#8B100A',fill:false,yAxisID:'y1',tension:0.3}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+    plugins:{legend:{display:true,position:'top',align:'end',labels:{boxWidth:12,font:{size:10}}},tooltip:{enabled:true,callbacks:{label:ctx=>{if(ctx.datasetIndex===0) return ` ${ctx.raw} lô`; return ` ${fmt(ctx.raw)} đ`;}} }},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:10},color:'#4a453d',maxRotation:30}},
+      y:{grid:{color:'#eee3d5'},ticks:{stepSize:5,font:{size:10}},title:{display:true,text:'Số lô',color:'#6b6459',font:{size:10}},position:'left'},
+      y1:{grid:{display:false},ticks:{callback:v=>fmt(v/1000)+'k',font:{size:10}},title:{display:true,text:'Tiền phạt (đ)',color:'#8B100A',font:{size:10}},position:'right'}
+    }
+  }
+});
+const totalPhat=Object.values(AGING_VALUES).reduce((a,b)=>a+b,0);
+const phat365=AGING_VALUES['>365 ngày'];
+const n365=AGING_COUNTS['>365 ngày'];
+document.getElementById('insights4').innerHTML=[
+  {k:'Có 56,4% tiền phạt từ >365 ngày',d:`Chỉ ${n365} lô (19,2% số lượng) nhưng tạo ra ${fmt(phat365)} đ, tăng so với tháng 08 (29 lô → 34 lô). Tình trạng "lô chết" đang lan rộng`},
+  {k:'36 lô từ 181–365 ngày',d:`Nhóm sắp bước vào vùng nguy hiểm >365 ngày, cần xử lý gấp trong Q4/2026 để tránh phạt cộng dồn. Giá trị nhóm này đang tăng (1.412.591 đ)`},
+  {k:'20 lô mới (0 ngày)',d:`Giảm so với tháng 08 (25 lô) nhưng CH Sa Đéc vẫn tập trung lô lớn: 40x80x1.40mm ~14,2 triệu, 50x100x1.40mm ~5,7 triệu đồng`},
+  {k:'Sóc Trăng: 14,25% tỷ lệ Phạt/Giá trị',d:`Cao nhất trong 5 tỉnh, gấp hơn 2 lần mức trung bình toàn hệ thống (6,69%). CH Vĩnh Lợi đóng góp 51% tổng phạt Sóc Trăng`}
+].map(i=>`<div class="insight"><div class="k">${i.k}</div><div class="d">${i.d}</div></div>`).join('');
+</script>
+</body>
+</html>
